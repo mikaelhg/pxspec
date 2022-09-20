@@ -769,7 +769,7 @@
     {
         "keyword": "STOCKFA",
         "mandatory": false,
-        "multiplicity": "/ 0-*",
+        "multiplicity": "/ 0-*", // !!!!! missing value
         "year": "1996/1999",
         "language": true,
         "default": null,
