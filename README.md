@@ -7,6 +7,10 @@ and [PXWeb code](https://github.com/statisticssweden/PCAxis.Core/blob/master/PCA
 
 ## PX file parse process
 
+Our objective is to be able to open, parse, and process a PX file of multiple hundreds of megabytes with only a few hundred kilobytes of `malloc`'d memory.
+
+So we have to process the file as a continuous stream, while only saving important metadata in memory, or we have to first create an index of the PX file in a separate disk file, and use that index to randomly access the PX file contents.
+
 ```mermaid
 flowchart LR
     chp(Configure \n Header Parser)
@@ -21,9 +25,15 @@ flowchart LR
 
 ### 1. Configure the Header Parser
 
-We want to know what kinds of EOL markings we have in this file, as well as the character encoding.
-The specification says nothing explicit about the end of line markings in the files.
+To configure the header parser, we need three pieces of information:
 
+A. are the EOL marks `\r\n`, `\n`, or something else.
+
+B. what the character encoding of the file is.
+
+C. what specification version the file purports to follow.
+
+The specification says nothing explicit about the end of line markings in the files.
 Typically, the EOLs will be Windows ("\r\n"), and the character encoding (`CODEPAGE`) is `"Windows-1252"`. 
 However, Google searches reveal that there are PX files in the wild with `CODEPAGE="UTF-8";`.
 
