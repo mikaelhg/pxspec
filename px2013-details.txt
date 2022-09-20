@@ -42,8 +42,8 @@ quotation marks, comma separated, followed by all data cells for that row
 (no quotation marks, space separated).
 
 Whether the text from VALUES or from CODES are used for a variable is
-indicated by the keyword KEYS(”var”)=CODES or
-KEYS(”var”)=VALUES. It is possible to use VALUES from one variable
+indicated by the keyword KEYS("var")=CODES or
+KEYS("var")=VALUES. It is possible to use VALUES from one variable
 and CODES for another in the same file.
 Rows that only contain 0 (zeros) are excluded from the file
 
@@ -58,7 +58,9 @@ DATASYMBOLNIL can be used to show something else in the table.
 How the dots are shown on screen is determined by the keywords
 DATASYMBOL1, etc. If these keywords are missing the presentation is
 taken from PC-Axis language files.
+
 3.2.2.3 Number of decimals when a file is saved
+
 The keyword DECIMALS determines the number of decimals to be saved. If
 the file also contains the key word PRECISION, PC-AXIS saves as many
 decimals as corresponds to the largest number specified by DECIMALS or
@@ -155,6 +157,7 @@ Multiline: No
 
 Unit text, e.g. ton, index. The text must not exceed 256 characters (new
 length 2008). Compare UNITS for CONTVARIABLE.
+
 When there is a CONTVARIABLE the keyword UNITS takes an index and
 is repeated for every value for the contents variable. UNITS("value")="tons".
 
@@ -165,7 +168,6 @@ Multiline: Yes
 
 The keyword VALUES occurs once for each variable in the table, and is
 followed by the variable name in parentheses, within quotation marks. The
-
 values will be in the same order as in the stub and heading, respectively.
 They are within quotation marks and separated by commas. Each value name
 must not exceed 256 characters. If the values have to be divided up into
@@ -190,10 +192,12 @@ Multiline: Yes
 
 This keyword list the identities of all attributes. Indirectly it also specifies the
 number of attributes.
-Each attribute id is separate with a comma sign and it is written within
-quotes.
+
+Each attribute id is separate with a comma sign and it is written within quotes.
+
 The ATTRIBUTE-ID keyword must be written before the ATTRIBUTES
 keyword and must exist if the ATTRIBUTES keyword is present.
+
 The ATTRIBUTE-ID keyword is multilingual, that is you do not have to
 specify it for each language.
 Example
@@ -246,8 +250,8 @@ Multiline: No
 Default value: NO
 
 If the file is published on the Internet and the user selects a number of
-variables and values it is possible to remove the windows “Select variables
-and values” in PC-Axis and instead show the complete table in PC-Axis
+variables and values it is possible to remove the windows "Select variables
+and values" in PC-Axis and instead show the complete table in PC-Axis
 when the file is downloaded. AUTOPEN=YES;.
 
 3.3.6 AXIS-VERSION
@@ -275,8 +279,8 @@ Multiline: Yes
 Footnote for a single cell or a group of cells. Which cell it refers to is given
 by values and variables. If a value is given as * the note refers to all values
 for that variable. Only one value can be given for each variable. The values
-are given in the variable order indicated by STUB and HEADING, starting
-with STUB.
+are given in the variable order indicated by STUB and HEADING, starting with STUB.
+
 CELLNOTE("*","*","Örebro", "1995")=
 "Lekebergs kommun has been excluded from Örebro";
 
@@ -293,15 +297,14 @@ Length: N/A
 Multiline: No
 
 Indicates if data is in current or fixed prices. C is used for Current and F for
-Fixed prices. Quotation marks must be used. CFPRICES="C" or
-CFPRICES("value")="C".
+Fixed prices. Quotation marks must be used. CFPRICES="C" or CFPRICES("value")="C".
 
 3.3.11 CHARSET
 Type: text
 Length: 20 characters
 Multiline: No
 
-CHARSET=”ANSI”; indicates that the texts in the file are written in
+CHARSET="ANSI"; indicates that the texts in the file are written in
 Windows format. If the keyword is missing it means that the texts in the file
 are in DOS format. They will be translated by PC-Axis to Windows. This
 keyword must appear in the beginning of the file before any texts that can
@@ -347,8 +350,8 @@ the form name, organization, telephone, fax, e-mail. Several persons can be
 stated in the same text string and are then divided by the #-sign. Is shown
 with the footnote. If there is a contents variable the keyword is repeated for
 each value CONTACT("value")="xx".
-CONTACT="Maria Svensson, SCB, +4619176800, +4619176900,
-maria.svensson@scb.se";
+
+CONTACT="Maria Svensson, SCB, +4619176800, +4619176900, maria.svensson@scb.se";
 
 3.3.16 CONTVARIABLE
 Type: text
@@ -378,7 +381,7 @@ Length: 256 characters
 Multiline: Yes
 
 Date when file was created. Written in format CCYYMMDD hh:mm, e.g.
-”19960612 14:20”. Is shown together with footnotes.
+"19960612 14:20". Is shown together with footnotes.
 
 3.3.19 DATABASE
 Type: text
@@ -445,14 +448,14 @@ Type: text
 Length: 20 characters
 Multiline: No
 
-This if used to indicate how a stored “.” is to be presented in a table.
+This if used to indicate how a stored "." is to be presented in a table.
 
 3.3.24 DATASYMBOLNIL
 Type: text
 Length: 20 characters
 Multiline: No
 
-This is used to indicate how a stored “-” is to be presented in a table. The –
+This is used to indicate how a stored "-" is to be presented in a table. The –
 indicates that the figure is absolutely nil.
 
 3.3.25 DATASYMBOLSUM
@@ -461,7 +464,7 @@ Length: 20 characters
 Multiline: No
 
 This if used to indicate how a sum of differing numbers of dots will be
-shown. The sum is stored as “…….”.
+shown. The sum is stored as "…….".
 
 3.3.26 DAYADJ
 Type: {YES, NO}
@@ -510,7 +513,7 @@ Length: N/A
 Multiline: No
 
 This keyword is used to get code and text in separate columns for the
-specified variable DOUBLECOLUMN(”region”)=YES;. On screen it only
+specified variable DOUBLECOLUMN("region")=YES;. On screen it only
 has effect if the user selects presentation in matrix format.
 
 3.3.32 ELIMINATION
@@ -540,9 +543,9 @@ Length: Lines of 256 characters for each value
 Multiline: Yes
 
 Example 1
-HIERARCHIES(“Country”)="parent","parent":"child",...
+HIERARCHIES("Country")="parent","parent":"child",...
 Example 2
-HIERARCHIES("Country")=”E25","E25":"E15","E15":"E12",
+HIERARCHIES("Country")="E25","E25":"E15","E15":"E12",
 "E12":"AT","E12":"BE","E12":"FI","E12":"FR","E12":"DE",
 "E12":"GR","E12":"IR","E12":"IT","E12":"LU","E12":"NL",
 "E12":"PT","E12":"ES","E15":"DK","E15":"SW","E15":"UK",
@@ -615,7 +618,7 @@ Multiline: No
 
 The language used in the PC-Axis file (2 chars), sv for Swedish, en for
 English etc. Compare language codes for text files. If the keyword is used,
-the words for “and” and “by” are read from the text file of that language.
+the words for "and" and "by" are read from the text file of that language.
 Otherwise these words are read from the text file of the language in which
 the program is running.
 
@@ -635,7 +638,7 @@ Length: 256 characters
 Multiline: No
 
 Date and time for latest update format CCYYMMDD hh:mm. Example
-”19960528 11:35”. Is also used in Aremos file format. The date is not
+"19960528 11:35". Is also used in Aremos file format. The date is not
 updated in PC-AXIS when changes are made to the table. If there is a
 contents variable it is written as LAST-UPDATED("value")= 19990318
 18:12
@@ -856,7 +859,7 @@ Length: 256 characters
 Multiline: Yes
 
 This is used for search in PX-Web. If the table concerns CPI the synonym
-can be “Inflation”. Several words can be included within “ “ and the total line
+can be "Inflation". Several words can be included within " " and the total line
 can be max 256 chars.
 
 3.3.63 TABLEID
@@ -872,14 +875,14 @@ Length: N/A
 Multiline: Yes
 
 New keyword in version 1.5 to enable the use of time series. After the
-keyword is the name of the time variable given, e.g. TIMEVAL(”time”).
+keyword is the name of the time variable given, e.g. TIMEVAL("time").
 TLIST gives information on timescale and timeperiods. The time periods
 must be consecutive.
 
 If the table contains the time periods 1994, 1995, 1996 TIMEVAL can be
 written in this way:
-Alt 1. TIMEVAL(”time”)=TLIST(A1, ”1994”-”1996”);
-Alt 2. TIMEVAL(”time”)=TLIST(A1), ”1994”, ”1995”,"1996”;
+Alt 1. TIMEVAL("time")=TLIST(A1, "1994"-"1996");
+Alt 2. TIMEVAL("time")=TLIST(A1), "1994", "1995","1996";
 
 The following formats are used:
 A1 for annual statistics written as CCYY (C for century, Y for year)
