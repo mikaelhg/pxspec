@@ -69,11 +69,14 @@ subkeys = "(" , quoted-string-list , ")" ;
 
 ```
 
+You have to order choices in a certain way for a left-recursive parser,
+the order here is only a implementation detail.
+
 ```ebnf
 values =
         integer
        | tlist-value
-       | { all characters - ";" } (* bare string without quotes *)
+       | { all characters - ( ";" | '"' ) } (* bare string without quotes *)
        | hierarchy-levels
        | ( multiline-quoted-string , { "," , multiline-quoted-string } )
        ;
