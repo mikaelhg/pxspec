@@ -91,7 +91,7 @@ multiline-quoted-string =
 quoted-string-list = quoted-string , { "," , quoted-string } ;
 
 multiline-quoted-string-list =
-        multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string ;
+        multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string } ;
 ```
 
 Specials:
@@ -99,7 +99,7 @@ Specials:
 ```ebnf
 tlist-value =
         "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")"
-          , [ "," , multiline-quoted-string-list ] ;
+          , [ "," , [ EOL ] , multiline-quoted-string-list ] ;
 
 time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
 
