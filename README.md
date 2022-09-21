@@ -53,7 +53,7 @@ Read the first five lines, and check for `CODEPAGE` and `AXIS-VERSION` keywords.
 
 There are two ways for laying out the data stored in a PX file. One for dense data cubes, where most data rows have cells with values, and one for sparse data cubes, where few of the potential data rows described by the space have values.
 
-The dense data cube data layout has each and every data cell potentially described by the STUB × HEADER matrix space laid out, separated by spaces, with missing values especially marked as such.
+The dense data cube data layout has each and every data cell potentially described by the `STUB × HEADING` matrix space laid out, separated by spaces, with missing values especially marked as such.
 
 The sparse data cube data layout identifies each data cube coordinate by laying out the data row by row, separated by EOL markers, and starting each row by describing a set space coordinates, followed by a whitespace character (" ") separator, followed by the data cell values for that coordinate. 
 
