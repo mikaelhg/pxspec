@@ -55,23 +55,59 @@ Save the values for those keywords to the header parser context.
 ### 2. Parse the Header
 
 ```ebnf
-
 row = keyword , "=" , values , ";" , EOL ;
+```
 
+```ebnf
 keyword = basekey , [ language ] , [ subkeys ] ;
+
+basekey = { "A".."Z" | "0".."9" | "-" };
 
 language = "[" , 2 * ( "a".."z" ) , "]" ;
 
-subkeys = "(" , quoted-string , { "," , quoted-string } , ")" ;
+subkeys = "(" , quoted-string-list , ")" ;
 
-basekey = { "A".."Z" | "-" };
+```
 
+```ebnf
+
+values =
+        integer
+       | tlist-value
+       | { all characters - ";" } (* bare string without quotes *)
+       | hierarchy-levels
+       | ( multiline-quoted-string , { "," , multiline-quoted-string } )
+       ;
+
+multiline-quoted-string =
+        ( quoted-string , { EOL , quoted-string }- ) (* {}- = one or more *)
+       | quoted-string
+       ;
+
+quoted-string-list = quoted-string , { "," , quoted-string } ;
+```
+
+Specials:
+
+```ebnf
+
+tlist-value = "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")" , [ quoted-string-list ] ;
+
+time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
+
+hierarchy-levels = quoted-string , "," , 
+                             quoted-string , ":" , quoted-string ,
+                     { "," , quoted-string , ":" , quoted-string } ;
+
+```
+
+
+```ebnf
 quoted-string = '"' , { all characters - '"' } , '"' ;
-
-white space = ? white space characters ? ;
 
 all characters = ? all visible characters ? ;
 
+integer = [ "-" ] , { "0".."9" } ;
 ```
 
 ### 3. Configure the Data Parser
