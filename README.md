@@ -129,16 +129,3 @@ The sparse data cube data layout identifies each data cube coordinate by laying 
 the data row by row, separated by EOL markers, and starting each row by describing 
 a set of `STUB` space coordinates, followed by a whitespace character (" ") separator, 
 followed by the data cell values for that data matrix row. 
- 
-
-## Materials
-
-Extract structured and freehand data from the PX 2013 PDF. 
-
-```bash
-java -jar tabula-1.0.5-jar-with-dependencies.jar \
-  -i -l -f CSV -p 3-5 px-file_format_specification_2013.pdf \
-   > ../pxspec/px2013-keywords.csv
-
-pdftotext -f 6 -l 30 -raw px-file_format_specification_2013.pdf ../pxspec/px2013-details.txt
-```
