@@ -110,6 +110,8 @@ quoted-string = '"' , { all characters - '"' } , '"' ;
 all characters = ? all visible characters ? ;
 
 integer = [ "-" ] , "0".."9" , { "0".."9" } ;
+
+EOL = ( "\r" , "\n" ) | "\n" ;
 ```
 
 ### 3. Configure the Data Parser
