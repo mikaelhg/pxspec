@@ -55,7 +55,7 @@ Save the values for those keywords to the header parser context.
 ### 2. Parse the Header
 
 ```ebnf
-row = keyword , "=" , values , ";" , EOL ;
+header row = keyword , "=" , values , ";" , EOL ;
 ```
 
 ```ebnf
@@ -106,7 +106,7 @@ quoted-string = '"' , { all characters - '"' } , '"' ;
 
 all characters = ? all visible characters ? ;
 
-integer = [ "-" ] , { "0".."9" } ;
+integer = [ "-" ] , "0".."9" , { "0".."9" } ;
 ```
 
 ### 3. Configure the Data Parser
