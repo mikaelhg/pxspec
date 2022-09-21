@@ -61,7 +61,7 @@ row = keyword , "=" , values , ";" , EOL ;
 ```ebnf
 keyword = basekey , [ language ] , [ subkeys ] ;
 
-basekey = { "A".."Z" | "0".."9" | "-" };
+basekey = "A".."Z" , { "A".."Z" | "0".."9" | "-" } ;
 
 language = "[" , 2 * ( "a".."z" ) , "]" ;
 
@@ -70,7 +70,6 @@ subkeys = "(" , quoted-string-list , ")" ;
 ```
 
 ```ebnf
-
 values =
         integer
        | tlist-value
@@ -80,7 +79,7 @@ values =
        ;
 
 multiline-quoted-string =
-        ( quoted-string , { EOL , quoted-string }- ) (* {}- = one or more *)
+        ( quoted-string , EOL , quoted-string , { EOL , quoted-string } )
        | quoted-string
        ;
 
@@ -90,7 +89,6 @@ quoted-string-list = quoted-string , { "," , quoted-string } ;
 Specials:
 
 ```ebnf
-
 tlist-value = "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")" , [ quoted-string-list ] ;
 
 time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
@@ -98,9 +96,10 @@ time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
 hierarchy-levels = quoted-string , "," , 
                              quoted-string , ":" , quoted-string ,
                      { "," , quoted-string , ":" , quoted-string } ;
-
 ```
 
+Quoted strings in this format have no escaping whatsoever, you simply cannot express
+the quote character as content in a PX string.
 
 ```ebnf
 quoted-string = '"' , { all characters - '"' } , '"' ;
