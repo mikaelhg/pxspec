@@ -92,13 +92,15 @@ quoted-string-list = quoted-string , { "," , quoted-string } ;
 Specials:
 
 ```ebnf
-tlist-value = "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")" , [ quoted-string-list ] ;
+tlist-value =
+        "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")"
+          , [ "," , quoted-string-list ] ;
 
 time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
 
-hierarchy-levels = quoted-string , "," , 
-                             quoted-string , ":" , quoted-string ,
-                     { "," , quoted-string , ":" , quoted-string } ;
+hierarchy-levels =
+        quoted-string , "," , quoted-string , ":" , quoted-string ,
+                      { "," , quoted-string , ":" , quoted-string } ;
 ```
 
 Quoted strings in this format have no escaping whatsoever, you simply cannot express
