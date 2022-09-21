@@ -78,7 +78,7 @@ values =
        | tlist-value
        | { all characters - ( ";" | '"' ) } (* bare string without quotes *)
        | hierarchy-levels
-       | ( multiline-quoted-string , { "," , multiline-quoted-string } )
+       | ( multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string } )
        ;
 
 multiline-quoted-string =
