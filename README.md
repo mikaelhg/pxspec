@@ -76,10 +76,12 @@ the order here is only a implementation detail.
 values =
         integer
        | tlist-value
-       | { all characters - ( ";" | '"' ) } (* bare string without quotes *)
+       | bare-string
        | hierarchy-levels
-       | ( multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string } )
+       | multiline-quoted-string-list
        ;
+
+bare-string = { all characters - ( ";" | '"' ) }- ; (* one or more character *)
 
 multiline-quoted-string =
         ( quoted-string , EOL , quoted-string , { EOL , quoted-string } )
@@ -87,6 +89,9 @@ multiline-quoted-string =
        ;
 
 quoted-string-list = quoted-string , { "," , quoted-string } ;
+
+multiline-quoted-string-list =
+        multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string ;
 ```
 
 Specials:
@@ -94,13 +99,13 @@ Specials:
 ```ebnf
 tlist-value =
         "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")"
-          , [ "," , quoted-string-list ] ;
+          , [ "," , multiline-quoted-string-list ] ;
 
 time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
 
 hierarchy-levels =
         quoted-string , "," , quoted-string , ":" , quoted-string ,
-                      { "," , quoted-string , ":" , quoted-string } ;
+                      { "," , [ EOL ] , quoted-string , ":" , quoted-string } ;
 ```
 
 Quoted strings in this format have no escaping whatsoever, you simply cannot express
