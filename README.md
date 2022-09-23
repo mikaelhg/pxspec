@@ -18,11 +18,13 @@ separate disk file, and use that index to randomly access the PX file contents.
 flowchart LR
     chp(Configure \n Header Parser)
     ph(Parse \n Header)
+    vhs(Validate \n Semantics)
     cdp(Configure \n Data Parser)
     pd(Parse \n Data)
 
     chp --> ph
-    ph --> cdp
+    ph --> vhs
+    vhs --> cdp
     cdp --> pd
 ```
 
@@ -66,7 +68,6 @@ basekey = "A".."Z" , { "A".."Z" | "0".."9" | "-" } ;
 language = "[" , 2 * ( "a".."z" ) , "]" ;
 
 subkeys = "(" , quoted-string-list , ")" ;
-
 ```
 
 You have to order choices in a certain way for a left-recursive parser,
