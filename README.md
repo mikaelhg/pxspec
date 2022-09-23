@@ -71,7 +71,7 @@ subkeys = "(" , quoted-string-list , ")" ;
 ```
 
 You have to order choices in a certain way for a left-recursive parser,
-the order here is only a implementation detail.
+the order here is only an implementation detail.
 
 ```ebnf
 values =
