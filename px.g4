@@ -5,26 +5,28 @@ header_row
    ;
 
 keyword
-   : BASEKEY LANGUAGE? subkeys? ;
+   : BASEKEY LANGUAGE? subkeys?
+   ;
 
 BASEKEY
-   : [A-Z] [A-Z0-9\-]+ ;
+   : [A-Z] [A-Z0-9\-]+
+   ;
 
 LANGUAGE
-   : '[' ( [a-z][a-z] ) ']' ;
+   : '[' ( [a-z][a-z] ) ']'
+   ;
 
 subkeys
-   : '(' quoted_string_list ')' ;
+   : '(' quoted_string_list ')'
+   ;
 
 quoted_string_list
-   : quoted_string ( ',' quoted_string )* ;
-
-quoted_string
-   : '"' NOT_QUOTE* '"' ;
+   : QUOTED_STRING ( ',' QUOTED_STRING )*
+   ;
 
 values
-   : integer
-   | tlist_value
+   : DIGITS
+   | time_list
    | bare_string
    | hierarchy_levels
    | multiline_quoted_string_list
@@ -35,29 +37,22 @@ bare_string
    ;
 
 multiline_quoted_string
-   : ( quoted_string EOL quoted_string ( EOL quoted_string )* )
-   | quoted_string
+   : QUOTED_STRING EOL QUOTED_STRING ( EOL QUOTED_STRING )*
+   | QUOTED_STRING
    ;
 
 multiline_quoted_string_list
-   : multiline_quoted_string ( ',' EOL? multiline_quoted_string )* ;
+   : multiline_quoted_string ( ',' EOL? multiline_quoted_string )*
+   ;
 
-tlist_value
-   : 'TLIST(' TIME_SCALE ( ',' quoted_string '-' quoted_string )? ')'
-          ( ',' EOL? multiline_quoted_string_list )? 
+time_list
+   : 'TLIST(' TIME_SCALE ( ',' QUOTED_STRING '-' QUOTED_STRING )? ')'
+      ( ',' EOL? multiline_quoted_string_list )?
    ;
 
 hierarchy_levels
-   : quoted_string ',' quoted_string ':' quoted_string
-     ( ',' EOL? quoted_string ':' quoted_string )*
-   ;
-
-integer
-   : DIGITS
-   ;
-
-YEAR4
-   : [0-9] [0-9] [0-9] [0-9]
+   : QUOTED_STRING ',' QUOTED_STRING ':' QUOTED_STRING
+     ( ',' EOL? QUOTED_STRING ':' QUOTED_STRING )*
    ;
 
 TIME_SCALE
@@ -73,6 +68,10 @@ EOL
    | '\n'
    ;
 
+QUOTED_STRING
+   : '"' (~["])* '"' 
+   ;
+
 NOT_QUOTE
    : ~["]
    ;
@@ -81,11 +80,6 @@ NOT_STERM
    : ~[";]
    ;
 
-
 DIGITS
    : [0-9] +
-   ;
-
-STRING
-   : ([a-zA-Z~0-9]) ([a-zA-Z0-9.+-])*
    ;
