@@ -1,11 +1,8 @@
 #!/bin/env python
 
-import tracemalloc
-from io import FileIO
+import io
 
 
-_FILENAME = '../gpcaxis/data/010_kats_tau_101.px'
-# _FILENAME = '../gpcaxis/data/example4.px'
 _FILENAME = '../gpcaxis/data/statfin_vtp_pxt_124l.px'
 
 class ParseException(Exception):
@@ -14,7 +11,7 @@ class ParseException(Exception):
 
 class CounterParser(object):
     """A POC for doing preliminary non-validating parsing for the
-    header section of a PX file with counters and one accumulator
+    header section of a PX file with counters and one _accumulator
     only, rather than a more complex state machine.
     """
 
@@ -24,11 +21,11 @@ class CounterParser(object):
     _quotes: int = 0
     _semicolons: int = 0
     _equals: int = 0
+    _accumulator: str = ''
 
-    # sb = square brackets open close, p = parenthesis
-    _sbo, _sbc, _po, _pc = 0, 0, 0, 0
-
-    count, s, keys, values = 0, "", list(), list()
+    count: int = 0
+    keys: list = list()
+    values: list = list()
 
     def _niq(self) -> bool:
         """The character pointer/cursor is currently not in a
@@ -36,7 +33,7 @@ class CounterParser(object):
         return self._quotes % 2 == 0
 
 
-    def parse_file(self, f: FileIO) -> bool:
+    def parse_file(self, f: io.FileIO) -> bool:
         while data := f.read(self.chunk_size):
             for c in data:
                 if not self.parse_character(c):
@@ -55,36 +52,16 @@ class CounterParser(object):
                 raise ParseException("There can't be newlines inside quoted strings.")
             return True
 
-        elif c == '(' and self._niq():
-            if self._po > self._pc:
-                raise ParseException("There can't be nested parentheses, only one can be open.")
-            self._po += 1
-
-        elif c == ')' and self._niq():
-            if self._po <= self._pc:
-                raise ParseException("There can't be a close parentheses if none is open.")
-            self._pc += 1
-
-        elif c == '[' and self._niq():
-            if self._sbo > self._sbc:
-                raise ParseException("There can't be nested square brackets, only one can be open.")
-            self._sbo += 1
-
-        elif c == ']' and self._niq():
-            if self._sbo <= self._sbc:
-                raise ParseException("There can't be a close square brackets if none is open.")
-            self._sbc += 1
-
         elif c == '=' and self._niq():
             if self._semicolons != self._equals:
                 raise ParseException("Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
             # end of key
-            if self.s == 'DATA':
+            if self._accumulator == 'DATA':
                 return False
             self._equals += 1
-            self.keys.append(self.s)
-            self.s = ''
+            self.keys.append(self._accumulator)
+            self._accumulator = ''
             return True
 
         elif c == ';' and self._niq():
@@ -93,28 +70,25 @@ class CounterParser(object):
 
             # end of value
             self._semicolons += 1
-            self.values.append(self.s)
-            self.s = ''
+            self.values.append(self._accumulator)
+            self._accumulator = ''
             return True
 
-        self.s += c
+        self._accumulator += c
         return True
 
     def __str__(self) -> str:
-        return 'count: {}, sbo: {}, sbc: {}, po: {}, pc: {}, quotes: {}, semis: {}, equals: {}'.format(
-            self.count, self._sbo, self._sbc, self._po, self._pc,
-            self._quotes, self._semicolons, self._equals
+        return 'count: {}, quotes: {}, semis: {}, equals: {}'.format(
+            self.count, self._quotes, self._semicolons, self._equals
         )
 
 
 def main():
-    tracemalloc.start()
     px_parser = CounterParser()
-    with open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
+    with io.open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
     print(px_parser)
-    print(tracemalloc.get_traced_memory())
-    tracemalloc.stop()
+    print(dict(zip(px_parser.keys, px_parser.values)))
 
 
 if __name__ == '__main__':
