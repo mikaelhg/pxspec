@@ -11,7 +11,7 @@ class ParseException(Exception):
     """PX parse failed"""
 
 
-class CounterParser:
+class CounterParser(object):
     """A POC for doing preliminary non-validating parsing for the
     header section of a PX file with counters and one accumulator
     only, rather than a more complex state machine.
@@ -36,37 +36,43 @@ class CounterParser:
     def parse_file(self, f: FileIO) -> bool:
         while data := f.read(self.chunk_size):
             for c in data:
-                if not self.parse(c):
+                if not self.parse_character(c):
                     return True
         return True
 
 
-    def parse(self, c: str) -> bool:
+    def parse_character(self, c: str) -> bool:
         self.count += 1
+
         if c == '"':
             self._quotes += 1
+
         elif c == '\n' or c == '\r':
             if not self._niq():
                 raise ParseException("There can't be newlines inside quoted strings.")
             return True
+
         elif c == '(' and self._niq():
             if self._po > self._pc:
                 raise ParseException("There can't be nested parentheses, only one can be open.")
             self._po += 1
+
         elif c == ')' and self._niq():
             if self._po <= self._pc:
                 raise ParseException("There can't be a close parentheses if none is open.")
             self._pc += 1
+
         elif c == '[' and self._niq():
             if self._sbo > self._sbc:
                 raise ParseException("There can't be nested square brackets, only one can be open.")
             self._sbo += 1
-        elif c == ']' and self._niq() and self._sbo > self._sbc:
+
+        elif c == ']' and self._niq():
             if self._sbo <= self._sbc:
                 raise ParseException("There can't be a close square brackets if none is open.")
             self._sbc += 1
-        elif c == '=' and self._niq() and \
-                self._semicolons == self._equals:
+
+        elif c == '=' and self._niq() and self._semicolons == self._equals:
             # end of key
             if self.s == 'DATA':
                 return False
@@ -74,13 +80,14 @@ class CounterParser:
             self.keys.append(self.s)
             self.s = ''
             return True
-        elif c == ';' and self._niq() and \
-                self._semicolons < self._equals:
+
+        elif c == ';' and self._niq() and self._semicolons < self._equals:
             # end of value
             self._semicolons += 1
             self.values.append(self.s)
             self.s = ''
             return True
+
         self.s += c
         return True
 
