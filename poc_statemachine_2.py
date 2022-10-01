@@ -33,15 +33,18 @@ class CounterParser(object):
         return self._quotes % 2 == 0
 
 
-    def parse_file(self, f: io.FileIO) -> bool:
+    def parse_file(self, f: io.FileIO):
         while data := f.read(self.chunk_size):
             for c in data:
-                if not self.parse_character(c):
-                    return True
-        return True
+                if self.parse_character(c):
+                    return
 
 
     def parse_character(self, c: str) -> bool:
+        """
+        Returns a bool to signify whether we should stop parsing here.
+        """
+
         self.count += 1
 
         if c == '"':
@@ -50,7 +53,7 @@ class CounterParser(object):
         elif c == '\n' or c == '\r':
             if not self._niq():
                 raise ParseException("There can't be newlines inside quoted strings.")
-            return True
+            return False
 
         elif c == '=' and self._niq():
             if self._semicolons != self._equals:
@@ -58,11 +61,11 @@ class CounterParser(object):
 
             # end of key
             if self._accumulator == 'DATA':
-                return False
+                return True
             self._equals += 1
             self.keys.append(self._accumulator)
             self._accumulator = ''
-            return True
+            return False
 
         elif c == ';' and self._niq():
             if self._semicolons >= self._equals:
@@ -72,10 +75,10 @@ class CounterParser(object):
             self._semicolons += 1
             self.values.append(self._accumulator)
             self._accumulator = ''
-            return True
+            return False
 
         self._accumulator += c
-        return True
+        return False
 
     def __str__(self) -> str:
         return 'count: {}, quotes: {}, semis: {}, equals: {}'.format(
@@ -88,7 +91,7 @@ def main():
     with io.open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
     print(px_parser)
-    print(dict(zip(px_parser.keys, px_parser.values)))
+    # print(dict(zip(px_parser.keys, px_parser.values)))
 
 
 if __name__ == '__main__':

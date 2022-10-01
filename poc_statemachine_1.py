@@ -1,6 +1,5 @@
 #!/bin/env python
 
-import tracemalloc
 from io import FileIO
 
 
@@ -28,7 +27,9 @@ class CounterParser(object):
     # sb = square brackets open close, p = parenthesis
     _sbo, _sbc, _po, _pc = 0, 0, 0, 0
 
-    count, s, keys, values = 0, "", list(), list()
+    count, s = 0, ""
+
+    current_key, headers = '', dict()
 
     def _niq(self) -> bool:
         """The character pointer/cursor is currently not in a
@@ -36,15 +37,18 @@ class CounterParser(object):
         return self._quotes % 2 == 0
 
 
-    def parse_file(self, f: FileIO) -> bool:
+    def parse_file(self, f: FileIO):
         while data := f.read(self.chunk_size):
             for c in data:
-                if not self.parse_character(c):
-                    return True
-        return True
+                if self.parse_character(c):
+                    return
 
 
     def parse_character(self, c: str) -> bool:
+        """
+        Returns a bool to signify whether we should stop parsing here.
+        """
+
         self.count += 1
 
         if c == '"':
@@ -53,7 +57,7 @@ class CounterParser(object):
         elif c == '\n' or c == '\r':
             if not self._niq():
                 raise ParseException("There can't be newlines inside quoted strings.")
-            return True
+            return False
 
         elif c == '(' and self._niq():
             if self._po > self._pc:
@@ -81,11 +85,11 @@ class CounterParser(object):
 
             # end of key
             if self.s == 'DATA':
-                return False
+                return True
             self._equals += 1
-            self.keys.append(self.s)
+            self.current_key = self.s
             self.s = ''
-            return True
+            return False
 
         elif c == ';' and self._niq():
             if self._semicolons >= self._equals:
@@ -93,12 +97,12 @@ class CounterParser(object):
 
             # end of value
             self._semicolons += 1
-            self.values.append(self.s)
+            self.headers[self.current_key] = self.s
             self.s = ''
-            return True
+            return False
 
         self.s += c
-        return True
+        return False
 
     def __str__(self) -> str:
         return 'count: {}, sbo: {}, sbc: {}, po: {}, pc: {}, quotes: {}, semis: {}, equals: {}'.format(
@@ -108,11 +112,13 @@ class CounterParser(object):
 
 
 def main():
+    import tracemalloc
     tracemalloc.start()
     px_parser = CounterParser()
     with open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
     print(px_parser)
+    # print(px_parser.headers)
     print(tracemalloc.get_traced_memory())
     tracemalloc.stop()
 
