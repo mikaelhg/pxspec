@@ -1,5 +1,12 @@
-?start: value
- 
+?start: header_row
+
+header_row : keyword "=" values ";" EOL
+
+keyword = basekey [ language ] [ subkeys ] ;
+
+
+
+
 ?value: object
         | array
         | string
