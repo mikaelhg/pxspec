@@ -3,7 +3,7 @@
 from io import FileIO
 
 
-_FILENAME = '../gpcaxis/data/010_kats_tau_101.px'
+# _FILENAME = '../gpcaxis/data/010_kats_tau_101.px'
 # _FILENAME = '../gpcaxis/data/example4.px'
 _FILENAME = '../gpcaxis/data/statfin_vtp_pxt_124l.px'
 
@@ -31,11 +31,6 @@ class CounterParser(object):
 
     current_key, headers = '', dict()
 
-    def _niq(self) -> bool:
-        """The character pointer/cursor is currently not in a
-        location in the PX file that's inside a quoted string."""
-        return self._quotes % 2 == 0
-
 
     def parse_file(self, f: FileIO):
         while data := f.read(self.chunk_size):
@@ -51,58 +46,76 @@ class CounterParser(object):
 
         self.count += 1
 
-        if c == '"':
-            self._quotes += 1
+        match (
+            c,
+            self._niq(),
+            self._po <= self._pc,
+            self._sbo <= self._sbc,
+            self._semicolons == self._equals,
+        ):
 
-        elif c == '\n' or c == '\r':
-            if not self._niq():
+            case ('"', _, _, _, _):
+                self._quotes += 1
+
+            case ('\n' | '\r', False, _, _, _):
                 raise ParseException("There can't be newlines inside quoted strings.")
-            return False
 
-        elif c == '(' and self._niq():
-            if self._po > self._pc:
+            case ('\n' | '\r', True, _, _, _):
+                return False
+
+            case ('(', True, False, _, _):
                 raise ParseException("There can't be nested parentheses, only one can be open.")
-            self._po += 1
 
-        elif c == ')' and self._niq():
-            if self._po <= self._pc:
+            case ('(', True, True, _, _):
+                self._po += 1
+
+            case (')', True, True, _, _):
                 raise ParseException("There can't be a close parentheses if none is open.")
-            self._pc += 1
 
-        elif c == '[' and self._niq():
-            if self._sbo > self._sbc:
+            case (')', True, False, _, _):
+                self._pc += 1
+
+            case ('[', True, _, False, _):
                 raise ParseException("There can't be nested square brackets, only one can be open.")
-            self._sbo += 1
 
-        elif c == ']' and self._niq():
-            if self._sbo <= self._sbc:
+            case ('[', True, _, True, _):
+                self._sbo += 1
+
+            case (']', True, _, True, _):
                 raise ParseException("There can't be a close square brackets if none is open.")
-            self._sbc += 1
 
-        elif c == '=' and self._niq():
-            if self._semicolons != self._equals:
+            case (']', True, _, False, _):
+                self._sbc += 1
+
+            case ('=', True, _, _, False):
                 raise ParseException("Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
-            # end of key
-            if self.s == 'DATA':
-                return True
-            self._equals += 1
-            self.current_key = self.s
-            self.s = ''
-            return False
+            case ('=', True, _, _, True):
+                # end of key
+                if self.s == 'DATA':
+                    return True
+                self._equals += 1
+                self.current_key = self.s
+                self.s = ''
+                return False
 
-        elif c == ';' and self._niq():
-            if self._semicolons >= self._equals:
+            case (';', True, _, _, True):
                 raise ParseException("Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
 
-            # end of value
-            self._semicolons += 1
-            self.headers[self.current_key] = self.s
-            self.s = ''
-            return False
+            case (';', True, _, _, False):
+                # end of value
+                self._semicolons += 1
+                self.headers[self.current_key] = self.s
+                self.s = ''
+                return False
 
         self.s += c
         return False
+
+    def _niq(self) -> bool:
+        """The character pointer/cursor is currently not in a
+        location in the PX file that's inside a quoted string."""
+        return self._quotes % 2 == 0
 
     def __str__(self) -> str:
         return 'count: {}, sbo: {}, sbc: {}, po: {}, pc: {}, quotes: {}, semis: {}, equals: {}'.format(

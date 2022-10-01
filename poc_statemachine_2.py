@@ -27,11 +27,6 @@ class CounterParser(object):
     keys: list = list()
     values: list = list()
 
-    def _niq(self) -> bool:
-        """The character pointer/cursor is currently not in a
-        location in the PX file that's inside a quoted string."""
-        return self._quotes % 2 == 0
-
 
     def parse_file(self, f: io.FileIO):
         while data := f.read(self.chunk_size):
@@ -79,6 +74,11 @@ class CounterParser(object):
 
         self._accumulator += c
         return False
+
+    def _niq(self) -> bool:
+        """The character pointer/cursor is currently not in a
+        location in the PX file that's inside a quoted string."""
+        return self._quotes % 2 == 0
 
     def __str__(self) -> str:
         return 'count: {}, quotes: {}, semis: {}, equals: {}'.format(
