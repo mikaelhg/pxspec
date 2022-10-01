@@ -1,5 +1,13 @@
 grammar px;
 
+@header {
+package io.mikael.px;
+}
+
+px_file
+    : header_row+
+    ;
+
 header_row
    : keyword '=' values ';' EOL
    ;
@@ -25,20 +33,22 @@ quoted_string_list
    ;
 
 values
-   : DIGITS
+   : integer
    | time_list
    | bare_string
    | hierarchy_levels
    | multiline_quoted_string_list
    ;
 
+integer: (DIGITS)+ ;
+
 bare_string
    : NOT_STERM+
    ;
 
 multiline_quoted_string
-   : QUOTED_STRING EOL QUOTED_STRING ( EOL QUOTED_STRING )*
-   | QUOTED_STRING
+   : sl+=QUOTED_STRING EOL sl+=QUOTED_STRING ( EOL sl+=QUOTED_STRING )*    # MultiLine
+   | sl+=QUOTED_STRING                                                     # SingleLine
    ;
 
 multiline_quoted_string_list
@@ -63,23 +73,24 @@ TIME_SCALE
    | 'W1'
    ;
 
-EOL
-   : '\r\n'
-   | '\n'
-   ;
-
 QUOTED_STRING
-   : '"' (~["])* '"' 
-   ;
-
-NOT_QUOTE
-   : ~["]
-   ;
-
-NOT_STERM
-   : ~[";]
+   : '"' (~["])*? '"'
    ;
 
 DIGITS
    : [0-9] +
    ;
+
+EOL
+   : '\r\n'
+   | '\n'
+   ;
+
+QUOTE: ["] ;
+
+SEMICOLON: [;] ;
+
+NOT_STERM
+   : ~[";]
+   ;
+
