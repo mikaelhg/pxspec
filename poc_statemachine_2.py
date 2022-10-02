@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import argparse
 from dataclasses import dataclass, field
 import io
 
@@ -112,10 +113,20 @@ class CounterParser(object):
         elif c == '(' and in_key and not in_quotes:
             self._parenthesis_open += 1
 
+        elif c == '(' and not in_key and not in_quotes:
+            # TLIST(
+            self._parenthesis_open += 1
+            self.row.value += c
+
         elif c == ')' and in_key and not in_quotes:
             self._parenthesis_close += 1
             self.row.subkeys.append(self.row.subkey)
             self.row.subkey = ''
+
+        elif c == ')' and not in_key and not in_quotes:
+            # TLIST()
+            self._parenthesis_close += 1
+            self.row.value += c
 
         elif c == ',' and in_subkey and not in_quotes:
             self.row.subkeys.append(self.row.subkey)
@@ -125,11 +136,11 @@ class CounterParser(object):
             self.row.values.append(self.row.value)
             self.row.value = ''
 
-        elif c == '=' and not in_quotes:
-            if not in_key:
-                raise ParseException(
-                    "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
+        elif c == '=' and not in_key and not in_quotes:
+            raise ParseException(
+                "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
+        elif c == '=' and in_key and not in_quotes:
             if self.row.keyword == 'DATA':
                 return True
             self._equals += 1
@@ -166,9 +177,15 @@ class CounterParser(object):
         )
 
 
-def main():
+def _parse_args():
+    parser = argparse.ArgumentParser(description='Parse PX file.')
+    parser.add_argument('file', type=str, default=_FILENAME)
+    return parser.parse_args()
+
+
+def main(args):
     px_parser = CounterParser()
-    with io.open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
+    with io.open(args.file, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
     # print(dict(zip(px_parser.keys, px_parser.values)))
     print(px_parser.headers)
@@ -176,4 +193,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(_parse_args())
