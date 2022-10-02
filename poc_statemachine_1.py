@@ -23,9 +23,10 @@ class CounterParser(object):
     _quotes: int = 0
     _semicolons: int = 0
     _equals: int = 0
-
-    # sb = square brackets open close, p = parenthesis
-    _sbo, _sbc, _po, _pc = 0, 0, 0, 0
+    _square_open: int = 0
+    _square_close: int = 0
+    _paren_open: int = 0
+    _paren_close: int = 0
 
     count, s = 0, ""
 
@@ -48,9 +49,9 @@ class CounterParser(object):
 
         match (
             c,
-            self._niq(),
-            self._po <= self._pc,
-            self._sbo <= self._sbc,
+            self._quotes % 2 == 0,
+            self._paren_open <= self._paren_close,
+            self._square_open <= self._square_close,
             self._semicolons == self._equals,
         ):
 
@@ -67,25 +68,25 @@ class CounterParser(object):
                 raise ParseException("There can't be nested parentheses, only one can be open.")
 
             case ('(', True, True, _, _):
-                self._po += 1
+                self._paren_open += 1
 
             case (')', True, True, _, _):
                 raise ParseException("There can't be a close parentheses if none is open.")
 
             case (')', True, False, _, _):
-                self._pc += 1
+                self._paren_close += 1
 
             case ('[', True, _, False, _):
                 raise ParseException("There can't be nested square brackets, only one can be open.")
 
             case ('[', True, _, True, _):
-                self._sbo += 1
+                self._square_open += 1
 
             case (']', True, _, True, _):
                 raise ParseException("There can't be a close square brackets if none is open.")
 
             case (']', True, _, False, _):
-                self._sbc += 1
+                self._square_close += 1
 
             case ('=', True, _, _, False):
                 raise ParseException("Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
@@ -112,14 +113,9 @@ class CounterParser(object):
         self.s += c
         return False
 
-    def _niq(self) -> bool:
-        """The character pointer/cursor is currently not in a
-        location in the PX file that's inside a quoted string."""
-        return self._quotes % 2 == 0
-
     def __str__(self) -> str:
         return 'count: {}, sbo: {}, sbc: {}, po: {}, pc: {}, quotes: {}, semis: {}, equals: {}'.format(
-            self.count, self._sbo, self._sbc, self._po, self._pc,
+            self.count, self._square_open, self._square_close, self._paren_open, self._paren_close,
             self._quotes, self._semicolons, self._equals
         )
 
