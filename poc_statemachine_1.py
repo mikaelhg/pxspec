@@ -7,6 +7,7 @@ from io import FileIO
 # _FILENAME = '../gpcaxis/data/example4.px'
 _FILENAME = '../gpcaxis/data/statfin_vtp_pxt_124l.px'
 
+
 class ParseException(Exception):
     """PX parse failed"""
 
@@ -23,15 +24,14 @@ class HeaderParser(object):
     _quotes: int = 0
     _semicolons: int = 0
     _equals: int = 0
-    _square_open: int = 0
-    _square_close: int = 0
-    _paren_open: int = 0
-    _paren_close: int = 0
+    _squarebracket_open: int = 0
+    _squarebracket_close: int = 0
+    _parenthesis_open: int = 0
+    _parenthesis_close: int = 0
 
-    count, s = 0, ""
+    character_count, accumulator = 0, ""
 
     current_key, headers = '', dict()
-
 
     def parse_file(self, f: FileIO):
         while data := f.read(self.chunk_size):
@@ -39,19 +39,18 @@ class HeaderParser(object):
                 if self.parse_character(c):
                     return
 
-
-    def parse_character(self, c: str) -> bool:
+    def parse_character(self, character: int) -> bool:
         """
         Returns a bool to signify whether we should stop parsing here.
         """
 
-        self.count += 1
+        self.character_count += 1
 
         match (
-            c,
+            character,
             self._quotes % 2 == 1,
-            self._paren_open <= self._paren_close,
-            self._square_open <= self._square_close,
+            self._parenthesis_open <= self._parenthesis_close,
+            self._squarebracket_open <= self._squarebracket_close,
             self._semicolons == self._equals,
         ):
 
@@ -68,36 +67,36 @@ class HeaderParser(object):
                 raise ParseException("There can't be nested parentheses, only one can be open.")
 
             case ('(', False, True, _, _):
-                self._paren_open += 1
+                self._parenthesis_open += 1
 
             case (')', False, True, _, _):
                 raise ParseException("There can't be a close parentheses if none is open.")
 
             case (')', False, False, _, _):
-                self._paren_close += 1
+                self._parenthesis_close += 1
 
             case ('[', False, _, False, _):
                 raise ParseException("There can't be nested square brackets, only one can be open.")
 
             case ('[', False, _, True, _):
-                self._square_open += 1
+                self._squarebracket_open += 1
 
             case (']', False, _, True, _):
                 raise ParseException("There can't be a close square brackets if none is open.")
 
             case (']', False, _, False, _):
-                self._square_close += 1
+                self._squarebracket_close += 1
 
             case ('=', False, _, _, False):
                 raise ParseException(
                     "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
             case ('=', False, _, _, True):
-                if self.s == 'DATA':
+                if self.accumulator == 'DATA':
                     return True
                 self._equals += 1
-                self.current_key = self.s
-                self.s = ''
+                self.current_key = self.accumulator
+                self.accumulator = ''
                 return False
 
             case (';', False, _, _, True):
@@ -106,18 +105,17 @@ class HeaderParser(object):
 
             case (';', False, _, _, False):
                 self._semicolons += 1
-                self.headers[self.current_key] = self.s
-                self.s = ''
+                self.headers[self.current_key] = self.accumulator
+                self.accumulator = ''
                 return False
 
-        self.s += c
+        self.accumulator += character
         return False
 
     def __str__(self) -> str:
-        return 'count: {}, sbo: {}, sbc: {}, po: {}, pc: {}, quotes: {}, semis: {}, equals: {}'.format(
-            self.count, self._square_open, self._square_close, self._paren_open, self._paren_close,
-            self._quotes, self._semicolons, self._equals
-        )
+        return f"{self.character_count=} {self._quotes=} {self._semicolons=} {self._equals=}\n" \
+               f"{self._squarebracket_open=} {self._squarebracket_close=}\n" \
+               f"{self._parenthesis_open=} {self._parenthesis_close=}"
 
 
 def main():
