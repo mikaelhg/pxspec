@@ -9,6 +9,23 @@ class ParseException(Exception):
     """PX parse failed"""
 
 
+class Accumulators:
+    keyword = ''
+    language = ''
+    subkey = ''
+    subkeys = list()
+    value = ''
+    values = list()
+
+    def reset(self):
+        self.keyword = ''
+        self.language = ''
+        self.subkey = ''
+        self.value = ''
+        self.subkeys = list()
+        self.values = list()
+
+
 class CounterParser(object):
     """A POC for doing preliminary non-validating parsing for the
     header section of a PX file with counters and one _accumulator
@@ -21,12 +38,14 @@ class CounterParser(object):
     _quotes: int = 0
     _semicolons: int = 0
     _equals: int = 0
-    _accumulator: str = ''
+    _squarebracket_open: int = 0
+    _squarebracket_close: int = 0
+    _parenthesis_open: int = 0
+    _parenthesis_close: int = 0
 
     count: int = 0
-    keys: list = list()
-    values: list = list()
-
+    headers = dict()
+    acc = Accumulators()
 
     def parse_file(self, f: io.FileIO):
         while data := f.read(self.chunk_size):
@@ -40,39 +59,74 @@ class CounterParser(object):
         Returns a bool to signify whether we should stop parsing here.
         """
 
+        in_quotes = self._quotes % 2 == 1
+        in_key = self._semicolons == self._equals
+        in_language = in_key and self._squarebracket_open > self._squarebracket_close
+        in_subkey = in_key and self._parenthesis_open > self._parenthesis_close
+
         self.count += 1
 
         if c == '"':
             self._quotes += 1
 
         elif c == '\n' or c == '\r':
-            if not self._niq():
+            if in_quotes:
                 raise ParseException("There can't be newlines inside quoted strings.")
             return False
 
-        elif c == '=' and self._niq():
-            if self._semicolons != self._equals:
-                raise ParseException("Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
+        elif c == '[' and in_key and not in_quotes:
+            self._squarebracket_open += 1
 
-            # end of key
-            if self._accumulator == 'DATA':
+        elif c == ']' and in_key and not in_quotes:
+            self._squarebracket_close += 1
+
+        elif c == '(' and in_key and not in_quotes:
+            self._parenthesis_open += 1
+
+        elif c == ')' and in_key and not in_quotes:
+            self._parenthesis_close += 1
+            self.acc.subkeys.append(self.acc.subkey)
+            self.acc.subkey = ''
+
+        elif c == ',' and in_subkey and not in_quotes:
+            self.acc.subkeys.append(self.acc.subkey)
+            self.acc.subkey = ''
+
+        elif c == ',' and not in_subkey and not in_quotes:
+            self.acc.values.append(self.acc.value)
+            self.acc.value = ''
+
+        elif c == '=' and not in_quotes:
+            if not in_key:
+                raise ParseException(
+                    "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
+
+            if self.acc.keyword == 'DATA':
                 return True
             self._equals += 1
-            self.keys.append(self._accumulator)
-            self._accumulator = ''
             return False
 
-        elif c == ';' and self._niq():
-            if self._semicolons >= self._equals:
-                raise ParseException("Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
-
-            # end of value
+        elif c == ';' and not in_quotes:
+            if in_key:
+                raise ParseException(
+                    "Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
+            if len(self.acc.value) > 0:
+                self.acc.values.append(self.acc.value)
             self._semicolons += 1
-            self.values.append(self._accumulator)
-            self._accumulator = ''
+            self.headers[(self.acc.keyword, self.acc.language, tuple(self.acc.subkeys))] = \
+                self.acc.values
+            self.acc.reset()
             return False
 
-        self._accumulator += c
+        elif in_subkey:
+            self.acc.subkey += c
+        elif in_language:
+            self.acc.language += c
+        elif in_key:
+            self.acc.keyword += c
+        else:
+            self.acc.value += c
+
         return False
 
     def _niq(self) -> bool:
@@ -90,8 +144,9 @@ def main():
     px_parser = CounterParser()
     with io.open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
-    print(px_parser)
     # print(dict(zip(px_parser.keys, px_parser.values)))
+    print(px_parser.headers)
+    print(px_parser)
 
 
 if __name__ == '__main__':
