@@ -11,7 +11,7 @@ class ParseException(Exception):
     """PX parse failed"""
 
 
-class CounterParser(object):
+class HeaderParser(object):
     """A POC for doing preliminary non-validating parsing for the
     header section of a PX file with counters and one accumulator
     only, rather than a more complex state machine.
@@ -49,7 +49,7 @@ class CounterParser(object):
 
         match (
             c,
-            self._quotes % 2 == 0,
+            self._quotes % 2 == 1,
             self._paren_open <= self._paren_close,
             self._square_open <= self._square_close,
             self._semicolons == self._equals,
@@ -58,41 +58,41 @@ class CounterParser(object):
             case ('"', _, _, _, _):
                 self._quotes += 1
 
-            case ('\n' | '\r', False, _, _, _):
+            case ('\n' | '\r', True, _, _, _):
                 raise ParseException("There can't be newlines inside quoted strings.")
 
-            case ('\n' | '\r', True, _, _, _):
+            case ('\n' | '\r', False, _, _, _):
                 return False
 
-            case ('(', True, False, _, _):
+            case ('(', False, False, _, _):
                 raise ParseException("There can't be nested parentheses, only one can be open.")
 
-            case ('(', True, True, _, _):
+            case ('(', False, True, _, _):
                 self._paren_open += 1
 
-            case (')', True, True, _, _):
+            case (')', False, True, _, _):
                 raise ParseException("There can't be a close parentheses if none is open.")
 
-            case (')', True, False, _, _):
+            case (')', False, False, _, _):
                 self._paren_close += 1
 
-            case ('[', True, _, False, _):
+            case ('[', False, _, False, _):
                 raise ParseException("There can't be nested square brackets, only one can be open.")
 
-            case ('[', True, _, True, _):
+            case ('[', False, _, True, _):
                 self._square_open += 1
 
-            case (']', True, _, True, _):
+            case (']', False, _, True, _):
                 raise ParseException("There can't be a close square brackets if none is open.")
 
-            case (']', True, _, False, _):
+            case (']', False, _, False, _):
                 self._square_close += 1
 
-            case ('=', True, _, _, False):
-                raise ParseException("Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
+            case ('=', False, _, _, False):
+                raise ParseException(
+                    "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
-            case ('=', True, _, _, True):
-                # end of key
+            case ('=', False, _, _, True):
                 if self.s == 'DATA':
                     return True
                 self._equals += 1
@@ -100,11 +100,11 @@ class CounterParser(object):
                 self.s = ''
                 return False
 
-            case (';', True, _, _, True):
-                raise ParseException("Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
+            case (';', False, _, _, True):
+                raise ParseException(
+                    "Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
 
-            case (';', True, _, _, False):
-                # end of value
+            case (';', False, _, _, False):
                 self._semicolons += 1
                 self.headers[self.current_key] = self.s
                 self.s = ''
@@ -123,7 +123,7 @@ class CounterParser(object):
 def main():
     import tracemalloc
     tracemalloc.start()
-    px_parser = CounterParser()
+    px_parser = HeaderParser()
     with open(_FILENAME, 'r', encoding='ISO-8859-15') as f:
         px_parser.parse_file(f)
     print(px_parser)
