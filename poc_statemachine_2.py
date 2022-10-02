@@ -1,29 +1,56 @@
 #!/bin/env python
 
+from dataclasses import dataclass, field
 import io
 
 
 _FILENAME = '../gpcaxis/data/statfin_vtp_pxt_124l.px'
 
+
 class ParseException(Exception):
     """PX parse failed"""
 
 
-class Accumulators:
-    keyword = ''
-    language = ''
-    subkey = ''
-    subkeys = list()
-    value = ''
-    values = list()
+@dataclass
+class PxHeaderKeyword:
+    keyword: str = ''
+    language: str = ''
+    subkeys: list[str] = field(default_factory=list)
+    def __hash__(self) -> int:
+        if self.subkeys:
+            return hash((self.keyword, self.language, *self.subkeys))
+        else:
+            return hash((self.keyword, self.language))
 
-    def reset(self):
-        self.keyword = ''
-        self.language = ''
-        self.subkey = ''
-        self.value = ''
-        self.subkeys = list()
-        self.values = list()
+
+@dataclass
+class PxHeaderValue:
+    values: list[str] = field(default_factory=list)
+    def __hash__(self) -> int:
+        return hash(tuple(self.values))
+
+
+@dataclass
+class PxHeaderRow:
+    keyword: PxHeaderKeyword = None
+    value: PxHeaderValue = None
+
+
+@dataclass
+class RowAccumulator:
+    keyword: str = ''
+    language: str = ''
+    subkey: str = ''
+    subkeys: list[str] = field(default_factory=list)
+    value: str = ''
+    values: list[str] = field(default_factory=list)
+
+    def get_keyword(self) -> PxHeaderKeyword:
+        return PxHeaderKeyword(
+            self.keyword,
+            self.language if self.language != '' else None,
+            self.subkeys if len(self.subkeys) > 0 else None
+        )
 
 
 class CounterParser(object):
@@ -45,7 +72,8 @@ class CounterParser(object):
 
     count: int = 0
     headers = dict()
-    acc = Accumulators()
+    row = RowAccumulator()
+
 
     def parse_file(self, f: io.FileIO):
         while data := f.read(self.chunk_size):
@@ -60,9 +88,10 @@ class CounterParser(object):
         """
 
         in_quotes = self._quotes % 2 == 1
+        in_parenthesis = self._parenthesis_open > self._parenthesis_close
         in_key = self._semicolons == self._equals
         in_language = in_key and self._squarebracket_open > self._squarebracket_close
-        in_subkey = in_key and self._parenthesis_open > self._parenthesis_close
+        in_subkey = in_key and in_parenthesis
 
         self.count += 1
 
@@ -85,23 +114,23 @@ class CounterParser(object):
 
         elif c == ')' and in_key and not in_quotes:
             self._parenthesis_close += 1
-            self.acc.subkeys.append(self.acc.subkey)
-            self.acc.subkey = ''
+            self.row.subkeys.append(self.row.subkey)
+            self.row.subkey = ''
 
         elif c == ',' and in_subkey and not in_quotes:
-            self.acc.subkeys.append(self.acc.subkey)
-            self.acc.subkey = ''
+            self.row.subkeys.append(self.row.subkey)
+            self.row.subkey = ''
 
-        elif c == ',' and not in_subkey and not in_quotes:
-            self.acc.values.append(self.acc.value)
-            self.acc.value = ''
+        elif c == ',' and not in_key and not in_quotes and not in_parenthesis:
+            self.row.values.append(self.row.value)
+            self.row.value = ''
 
         elif c == '=' and not in_quotes:
             if not in_key:
                 raise ParseException(
                     "Found a second equals sign without a matching semicolon. Unexpected keyword terminator.")
 
-            if self.acc.keyword == 'DATA':
+            if self.row.keyword == 'DATA':
                 return True
             self._equals += 1
             return False
@@ -110,29 +139,26 @@ class CounterParser(object):
             if in_key:
                 raise ParseException(
                     "Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
-            if len(self.acc.value) > 0:
-                self.acc.values.append(self.acc.value)
+            if len(self.row.value) > 0:
+                self.row.values.append(self.row.value)
             self._semicolons += 1
-            self.headers[(self.acc.keyword, self.acc.language, tuple(self.acc.subkeys))] = \
-                self.acc.values
-            self.acc.reset()
+            self.headers[self.row.get_keyword()] = self.row.values
+            self.row = RowAccumulator()
             return False
 
         elif in_subkey:
-            self.acc.subkey += c
+            self.row.subkey += c
+
         elif in_language:
-            self.acc.language += c
+            self.row.language += c
+
         elif in_key:
-            self.acc.keyword += c
+            self.row.keyword += c
+
         else:
-            self.acc.value += c
+            self.row.value += c
 
         return False
-
-    def _niq(self) -> bool:
-        """The character pointer/cursor is currently not in a
-        location in the PX file that's inside a quoted string."""
-        return self._quotes % 2 == 0
 
     def __str__(self) -> str:
         return 'count: {}, quotes: {}, semis: {}, equals: {}'.format(
