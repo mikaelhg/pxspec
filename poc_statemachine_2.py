@@ -3,8 +3,7 @@
 import argparse
 from dataclasses import dataclass, field
 import io
-
-from typing.io import TextIO
+import itertools
 
 
 class ParseException(Exception):
@@ -63,6 +62,7 @@ class RowAccumulator:
 
 @dataclass
 class HeaderParseState:
+    count: int = 0
     quotes: int = 0
     semicolons: int = 0
     equals: int = 0
@@ -72,36 +72,49 @@ class HeaderParseState:
     parenthesis_close: int = 0
 
 
-class CounterParser(object):
+class CounterParser:
     """A POC for doing preliminary non-validating parsing for the
     header section of a PX file with counters and one _accumulator
     only, rather than a more complex state machine.
     """
 
-    chunk_size = 4096
-    count: int = 0
     headers = dict()
     row = RowAccumulator()
     hs = HeaderParseState()
 
-    def parse_file(self, f: TextIO):
-        while data := f.read(self.chunk_size):
-            for c in data:
-                if self.parse_character(c):
-                    return
+    def parse_data_dense(self, br: io.TextIOWrapper):
+        stub = self.values('STUB')
+        stub_values = [self.values('VALUES', None, [k]) for k in stub]
+        stub_flattened = list(itertools.product(*stub_values))
 
-    def parse_character(self, c: str) -> bool:
-        """
-        Returns a bool to signify whether we should stop parsing here.
-        """
+        heading = self.values('HEADING')
+        heading_values = [self.values('VALUES', None, [k]) for k in heading]
+        heading_flattened = list(itertools.product(*heading_values))
+        heading_csv = [' '.join(x) for x in heading_flattened]
 
+        print(f"{stub=}")
+        print(f"{stub_values=}")
+        print(f"{stub_flattened=}")
+        print(f"{heading=}")
+        print(f"{heading_values=}")
+        print(f"{heading_flattened=}")
+
+    def parse_data_dense_character(self, c: str) -> bool:
+        pass
+
+    def parse_header(self, br: io.TextIOWrapper):
+        while c := br.read(1):
+            if self.parse_header_character(c):
+                return
+
+    def parse_header_character(self, c: str) -> bool:
         in_quotes = self.hs.quotes % 2 == 1
         in_parenthesis = self.hs.parenthesis_open > self.hs.parenthesis_close
         in_key = self.hs.semicolons == self.hs.equals
         in_language = in_key and self.hs.squarebracket_open > self.hs.squarebracket_close
         in_subkey = in_key and in_parenthesis
 
-        self.count += 1
+        self.hs.count += 1
 
         if c == '"':
             self.hs.quotes += 1
@@ -196,15 +209,9 @@ def _parse_args():
 
 def main(args):
     px_parser = CounterParser()
-    with io.open(args.file, 'r', encoding=args.encoding) as f:
-        px_parser.parse_file(f)
-    stub = px_parser.values('STUB')
-    heading = px_parser.values('HEADING')
-    stubs = {k: px_parser.values('VALUES', None, [k]) for k in stub}
-    headings = {k: px_parser.values('VALUES', None, [k]) for k in heading}
-    # print(px_parser.headers)
-    print(f'{stub=}, {stubs=}')
-    print(f'{heading=} {headings=}')
+    with open(args.file, 'r', encoding=args.encoding, buffering=4096) as f:
+        px_parser.parse_header(f)
+        px_parser.parse_data_dense(f)
     print(px_parser)
 
 
