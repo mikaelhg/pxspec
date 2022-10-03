@@ -5,9 +5,6 @@ from dataclasses import dataclass, field
 import io
 
 
-_FILENAME = '../gpcaxis/data/statfin_vtp_pxt_124l.px'
-
-
 class ParseException(Exception):
     """PX parse failed"""
 
@@ -52,6 +49,9 @@ class RowAccumulator:
             self.language if self.language != '' else None,
             self.subkeys if len(self.subkeys) > 0 else None
         )
+
+    def get_value(self) -> PxHeaderValue:
+        return PxHeaderValue(self.values)
 
 
 class CounterParser(object):
@@ -153,7 +153,7 @@ class CounterParser(object):
             if len(self.row.value) > 0:
                 self.row.values.append(self.row.value)
             self._semicolons += 1
-            self.headers[self.row.get_keyword()] = self.row.values
+            self.headers[self.row.get_keyword()] = self.row.get_value()
             self.row = RowAccumulator()
             return False
 
@@ -171,6 +171,11 @@ class CounterParser(object):
 
         return False
 
+
+    def values(self, keyword: str, language: str = None, subkeys: list[str] = None):
+        return self.headers[PxHeaderKeyword(keyword, language, subkeys)].values
+
+
     def __str__(self) -> str:
         return 'count: {}, quotes: {}, semis: {}, equals: {}'.format(
             self.count, self._quotes, self._semicolons, self._equals
@@ -179,16 +184,22 @@ class CounterParser(object):
 
 def _parse_args():
     parser = argparse.ArgumentParser(description='Parse PX file.')
-    parser.add_argument('file', type=str, default=_FILENAME)
+    parser.add_argument('file', type=str)
+    parser.add_argument('--encoding', type=str, default='ISO-8859-15')
     return parser.parse_args()
 
 
 def main(args):
     px_parser = CounterParser()
-    with io.open(args.file, 'r', encoding='ISO-8859-15') as f:
+    with io.open(args.file, 'r', encoding=args.encoding) as f:
         px_parser.parse_file(f)
-    # print(dict(zip(px_parser.keys, px_parser.values)))
-    print(px_parser.headers)
+    stub = px_parser.values('STUB')
+    heading = px_parser.values('HEADING')
+    stubs = {k: px_parser.values('VALUES', None, [k]) for k in stub}
+    headings = {k: px_parser.values('VALUES', None, [k]) for k in heading}
+    # print(px_parser.headers)
+    print(f'{stub=}, {stubs=}')
+    print(f'{heading=} {headings=}')
     print(px_parser)
 
 
