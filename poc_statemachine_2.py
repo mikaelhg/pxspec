@@ -72,6 +72,11 @@ class HeaderParseState:
     parenthesis_close: int = 0
 
 
+@dataclass
+class DataParseState:
+    count: int = 0
+
+
 class CounterParser:
     """A POC for doing preliminary non-validating parsing for the
     header section of a PX file with counters and one _accumulator
@@ -81,6 +86,7 @@ class CounterParser:
     headers = dict()
     row = RowAccumulator()
     hs = HeaderParseState()
+    dps = DataParseState()
 
     def parse_data_dense(self, br: io.TextIOWrapper):
         stub = self.values('STUB')
@@ -92,15 +98,18 @@ class CounterParser:
         heading_flattened = list(itertools.product(*heading_values))
         heading_csv = [' '.join(x) for x in heading_flattened]
 
-        print(f"{stub=}")
-        print(f"{stub_values=}")
-        print(f"{stub_flattened=}")
-        print(f"{heading=}")
-        print(f"{heading_values=}")
-        print(f"{heading_flattened=}")
+        #print(f"{stub=}")
+        #print(f"{stub_values=}")
+        #print(f"{stub_flattened=}")
+        #print(f"{heading=}")
+        #print(f"{heading_values=}")
+        #print(f"{heading_flattened=}")
 
-    def parse_data_dense_character(self, c: str) -> bool:
-        pass
+        dps_count = 0
+        while d := br.read(512):
+            for c in d:
+                dps_count += 1
+        self.dps.count = dps_count
 
     def parse_header(self, br: io.TextIOWrapper):
         while c := br.read(1):
@@ -197,7 +206,7 @@ class CounterParser:
         return self.headers[PxHeaderKeyword(keyword, language, subkeys)].values
 
     def __str__(self) -> str:
-        return f'{self.hs=}'
+        return f"{self.hs=}\n{self.dps=}"
 
 
 def _parse_args():
