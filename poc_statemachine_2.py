@@ -1,6 +1,7 @@
 #!/bin/env python
 
 import argparse
+import csv
 from dataclasses import dataclass, field
 import io
 import itertools
@@ -88,27 +89,38 @@ class CounterParser:
     hs = HeaderParseState()
     dps = DataParseState()
 
-    def parse_data_dense(self, br: io.TextIOWrapper):
+    def parse_data_dense(self, input: io.TextIOWrapper, output: csv.DictWriter):
         stub = self.values('STUB')
         stub_values = [self.values('VALUES', None, [k]) for k in stub]
-        stub_flattened = list(itertools.product(*stub_values))
+        stub_flattened = itertools.product(*stub_values)
 
         heading = self.values('HEADING')
         heading_values = [self.values('VALUES', None, [k]) for k in heading]
         heading_flattened = list(itertools.product(*heading_values))
+        heading_width = len(heading_flattened)
         heading_csv = [' '.join(x) for x in heading_flattened]
 
-        #print(f"{stub=}")
-        #print(f"{stub_values=}")
-        #print(f"{stub_flattened=}")
-        #print(f"{heading=}")
-        #print(f"{heading_values=}")
-        #print(f"{heading_flattened=}")
+        output.writerow(stub + heading_csv)
 
         dps_count = 0
-        while d := br.read(512):
+        values = list()
+        value = ''
+        value_len = 0
+        while d := input.read(1024):
             for c in d:
                 dps_count += 1
+                if c == ' ' or c == "\n" or c == "\r":
+                    if value_len > 0:
+                        values.append(value)
+                        value = ''
+                        value_len = 0
+                    if len(values) == heading_width:
+                        output.writerow(list(next(stub_flattened)) + values)
+                        values = list()
+                else:
+                    value += c
+                    value_len += 1
+
         self.dps.count = dps_count
 
     def parse_header(self, br: io.TextIOWrapper):
@@ -212,15 +224,20 @@ class CounterParser:
 def _parse_args():
     parser = argparse.ArgumentParser(description='Parse PX file.')
     parser.add_argument('file', type=str)
+    parser.add_argument('--csv', type=str)
     parser.add_argument('--encoding', type=str, default='ISO-8859-15')
     return parser.parse_args()
 
 
 def main(args):
     px_parser = CounterParser()
-    with open(args.file, 'r', encoding=args.encoding, buffering=4096) as f:
-        px_parser.parse_header(f)
-        px_parser.parse_data_dense(f)
+    with (
+        open(args.file, 'r', encoding=args.encoding, buffering=4096) as inf,
+        open(args.csv, 'w', newline='', buffering=4096) as outf,
+    ):
+        csv_writer = csv.writer(outf, quoting=csv.QUOTE_NONNUMERIC)
+        px_parser.parse_header(inf)
+        px_parser.parse_data_dense(inf, csv_writer)
     print(px_parser)
 
 
