@@ -90,12 +90,12 @@ class CounterParser:
     dps = DataParseState()
 
     def parse_data_dense(self, input: io.TextIOWrapper, output: csv.DictWriter):
-        stub = self.values('STUB')
-        stub_values = [self.values('VALUES', None, [k]) for k in stub]
+        stub = self.header('STUB')
+        stub_values = [self.header('VALUES', None, [k]) for k in stub]
         stub_flattened = itertools.product(*stub_values)
 
-        heading = self.values('HEADING')
-        heading_values = [self.values('VALUES', None, [k]) for k in heading]
+        heading = self.header('HEADING')
+        heading_values = [self.header('VALUES', None, [k]) for k in heading]
         heading_flattened = list(itertools.product(*heading_values))
         heading_width = len(heading_flattened)
         heading_csv = [' '.join(x) for x in heading_flattened]
@@ -214,7 +214,7 @@ class CounterParser:
 
         return False
 
-    def values(self, keyword: str, language: str = None, subkeys: list[str] = None):
+    def header(self, keyword: str, language: str = None, subkeys: list[str] = None):
         return self.headers[PxHeaderKeyword(keyword, language, subkeys)].values
 
     def __str__(self) -> str:
@@ -223,22 +223,30 @@ class CounterParser:
 
 def _parse_args():
     parser = argparse.ArgumentParser(description='Parse PX file.')
-    parser.add_argument('file', type=str)
-    parser.add_argument('--csv', type=str)
+    parser.add_argument('input', type=str)
+    parser.add_argument('output', type=str)
     parser.add_argument('--encoding', type=str, default='ISO-8859-15')
+    parser.add_argument('--trace', action='store_true', default=False,
+        help='Trace memory allocations, slows down the process.')
     return parser.parse_args()
 
 
 def main(args):
+    if args.trace:
+        import tracemalloc
+        tracemalloc.start()
     px_parser = CounterParser()
     with (
-        open(args.file, 'r', encoding=args.encoding, buffering=4096) as inf,
-        open(args.csv, 'w', newline='', buffering=4096) as outf,
+        open(args.input, 'r', encoding=args.encoding, buffering=4096) as inf,
+        open(args.output, 'w', newline='', buffering=4096) as outf,
     ):
         csv_writer = csv.writer(outf, quoting=csv.QUOTE_NONNUMERIC)
         px_parser.parse_header(inf)
         px_parser.parse_data_dense(inf, csv_writer)
     print(px_parser)
+    if args.trace:
+        print(tracemalloc.get_traced_memory())
+        tracemalloc.stop()
 
 
 if __name__ == '__main__':
