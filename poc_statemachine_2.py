@@ -188,7 +188,7 @@ class CounterParser:
             self.hs.equals += 1
             return False
 
-        elif c == ';' and not in_quotes and in_key:
+        elif c == ';' and in_key and not in_quotes:
             raise ParseException(
                 "Found a semicolon without a matching equals sign. Value terminator without keyword terminator.")
 
