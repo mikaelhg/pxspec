@@ -16,115 +16,115 @@ separate disk file, and use that index to randomly access the PX file contents.
 
 ```mermaid
 flowchart LR
-    chp(Configure \n Header Parser)
     ph(Parse \n Header)
-    vhs(Validate \n Semantics)
-    cdp(Configure \n Data Parser)
-    pd(Parse \n Data)
+    vhs(Validate \n Header \n Semantics)
+    sdp{Select \n Data Parser}
+    psd(Parse \n Sparse Data)
+    pdd(Parse \n Dense Data)
 
-    chp --> ph
     ph --> vhs
-    vhs --> cdp
-    cdp --> pd
+    vhs --> sdp
+    sdp --> psd
+    sdp --> pdd
 ```
 
-### 1. Configure the Header Parser
+### 1. Parse the Header
 
-To configure the header parser, we need three pieces of information:
+#### Single-byte or multi-byte
 
-A. are the EOL marks `\r\n`, `\n`, or something else.
+We don't know whether the file consists of single-byte or multi-byte (UTF-8) characters,
+until we've parsed the first few rows of PX headers. In those first few rows, we should
+encounter the `CODEPAGE` header, which will indicate this. 
 
-B. what the character encoding of the file is.
+The PX 2013 standard suggests that you SHOULD follow a particular order for the header 
+rows, which would guarantee that while reading those first few rows of headers up to 
+and including the `CODEPAGE` header, all characters should be single byte, and would
+practically be within the ASCII range.
 
-C. what specification version the file purports to follow.
+While the PX 2013 standard doesn't mandate this, it appears that the major PX file
+producers do follow the suggestion.
 
-The specification says nothing explicit about the end of line markings in the files.
-Typically, the EOLs will be Windows ("\r\n"), and the character encoding (`CODEPAGE`) is `"Windows-1252"`.
-However, Google searches reveal that there are PX files in the wild with `CODEPAGE="UTF-8";`.
+#### Newlines and whitespaces
 
-The specification is silent as to the possibility of PX files beginning with 
-UTF-8 or UTF-16 BOM markers.
+You can't have newlines, either `\n`, `\r` or `\r\n`, inside quoted header strings.
 
-Open the file (as binary), and read 64 bytes (not characters) from the beginning 
-of the file with a simple naive read.
+Whitespace here means the characters ` ` (space), `\n` (newline), `\r`
 
-Check whether the first bytes are `CHARSET="ANSI";` followed by `\r\n`. If so, 
-that's the EOL marking you will use for the rest of the parse.
+In the headers, whitespace outside quoted strings is not meaningful,
+and can be ignored and those characters dropped.
 
-Read the first five lines, and check for `CODEPAGE` and `AXIS-VERSION` keywords. 
-Save the values for those keywords to the header parser context.
+In the dense data section, whitespace outside quoted strings is meaningful,
+and denotes the end of a data item, practically either a number or a
+`DATASYMBOL{1-6,NIL}` marking. While it might appear that the PX producer
+implementations use `\n` to mark the end of a data row, that's just an
+implementation detail which you cannot rely on. You have to count items.
 
-### 2. Parse the Header
+In the sparse data section (KEYS), the `STUB` part of each row follows
+the quotation and comma separation rules specified in section 3.2.2.2 of
+the PX 2013 standard, and the `HEADING` part of the row follows the 
+dense data rules.
 
-```ebnf
-header row = keyword , "=" , values , ";" , EOL ;
+#### Header value types.
+
+1\. Plain number.
+
+If the header value consists solely of `[0-9]` and `[\.]` (decimal, dot)
+characters until the end-of-row `;`, it's a valid plain number.
+
+2\. Non-quoted string.
+
+If the header value does not begin with the `"` (quote) character,
+and does not contain any `"` (quote) characters or newlines until
+the end-of-row `;`, it's a valid non-quoted string.
+
+3\. Quoted string list.
+
+If the header value begins with the `"` (quote) character, and the
+keyword was not `HIERARCHY`, it must parse into a valid quoted 
+string list.
+
+A quoted string list consists of one or more quoted strings separated
+by the `,` (comma) character.
+
+```text
+QSL1="A","B","C";
 ```
 
-```ebnf
-keyword = basekey , [ language ] , [ subkeys ] ;
+An individual quoted string begins with a `"` quote character,
+followed by zero or more characters which do not include the 
+`"` quote character (there is no character escaping in the standard)
+or the newline characters `\n` or `\r`, and terminated by a `"` quote
+character.
 
-basekey = "A".."Z" , { "A".."Z" | "0".."9" | "-" } ;
+You can break an individual quoted string list member into multiple rows,
+and this means semantically that you concatenate all quoted string list
+item parts which are separated by a newline.
 
-language = "[" , 2 * ( "a".."z" ) , "]" ;
-
-subkeys = "(" , quoted-string-list , ")" ;
+```text
+QSL2="aaa"
+"AAA",
+"B","CCC"
+"222";
 ```
 
-You have to order choices in a certain way for a left-recursive parser,
-the order here is only an implementation detail.
+Or as a hexlified byte array
 
-```ebnf
-values =
-        integer
-       | tlist-value
-       | bare-string
-       | hierarchy-levels
-       | multiline-quoted-string-list
-       ;
-
-bare-string = { all characters - ( ";" | '"' ) }- ; (* one or more character *)
-
-multiline-quoted-string =
-        ( quoted-string , EOL , quoted-string , { EOL , quoted-string } )
-       | quoted-string
-       ;
-
-quoted-string-list = quoted-string , { "," , quoted-string } ;
-
-multiline-quoted-string-list =
-        multiline-quoted-string , { "," , [ EOL ] , multiline-quoted-string } ;
+```
+51 53 4C 32 3D 22 61 61 61 22 0A 22 41 41 41 22 2C 0A 22 42 22 2C 22 43 43 43 22 0A 22 32 32 32 22 3B 0A
 ```
 
-Specials:
+In the example QSL2, the final string list will parse into ["aaaAAA", "B", "CCC222"].
 
-```ebnf
-tlist-value =
-        "TLIST(" , time-scale , [ quoted-string , "-" , quoted-string ] , ")"
-          , [ "," , [ EOL ] , multiline-quoted-string-list ] ;
+4\. `TIMEVAL` variant of the quoted string list.
 
-time-scale = "A1" | "H1" | "Q1" | "M1" | "W1" ;
+To be written.
 
-hierarchy-levels =
-        quoted-string , "," , quoted-string , ":" , quoted-string ,
-                      { "," , [ EOL ] , quoted-string , ":" , quoted-string } ;
-```
+5\. `HIERARCHY` variant of the quoted string list.
 
-Quoted strings in this format have no escaping whatsoever, you simply cannot express
-the quote character as content in a PX string.
+To be written.
 
-```ebnf
-quoted-string = '"' , { all characters - '"' } , '"' ;
 
-all characters = ? all visible characters ? ;
-
-integer = [ "-" ] , "0".."9" , { "0".."9" } ;
-
-EOL = "\r\n" | "\n" ;
-```
-
-### 3. Configure the Data Parser
-
-### 4. Parse the Data
+### 2. Parse the Data
 
 There are two ways for laying out the data stored in a PX file. One for dense 
 data cubes, where most data rows have cells with values, and one for sparse 
