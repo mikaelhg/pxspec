@@ -10,9 +10,9 @@ and [PXWeb code](https://github.com/statisticssweden/PCAxis.Core/blob/master/PCA
 Our objective is to be able to open, parse, and process a PX file of multiple 
 hundreds of megabytes with only a few hundred kilobytes of `malloc`'d memory.
 
-So we have to process the file as a continuous stream, while only saving important 
-metadata in memory, or we have to first create an index of the PX file in a 
-separate disk file, and use that index to randomly access the PX file contents.
+This means that we have to process the file as a continuous stream, while only
+saving significant metadata in memory, and minimize any GC-inducing memory
+allocation during data parsing.
 
 ```mermaid
 flowchart LR
@@ -149,8 +149,8 @@ HIERARCHY="a","a":"b","b":"c","c":"d","b":"e","b":"f";
 
 There are two ways for laying out the data stored in a PX file. One for dense 
 data cubes, where most data rows have cells with values, and one for sparse 
-data cubes, where few of the potential data rows described by the space have 
-values. Both methods allow for streaming parsing, one data matrix row at a time.
+data cubes, where few of the potential data rows described by the space boundaries
+have values. Both methods allow for streaming parsing, one data matrix row at a time.
 
 The dense data cube data layout has each and every data cell potentially described 
 by the `STUB × HEADING` matrix space laid out, separated by spaces, with missing 
@@ -160,3 +160,10 @@ The sparse data cube data layout identifies each data cube coordinate by laying 
 the data row by row, separated by EOL markers, and starting each row by describing 
 a set of `STUB` space coordinates, followed by a whitespace character (" ") separator, 
 followed by the data cell values for that data matrix row. 
+
+After parsing the file header, if you encounter any headers with the keyword `KEYS`,
+your data will be laid out in the sparse format. Otherwise it will be in the dense
+format.
+
+If there is a single `KEYS` header, all of the `STUB` values must have a
+corresponding `KEYS` header.
