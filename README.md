@@ -97,6 +97,11 @@ followed by zero or more characters which do not include the
 or the newline characters `\n` or `\r`, and terminated by a `"` quote
 character.
 
+> Let me repeat this for absolute clarity: You cannot include the quote
+> character in any user input strings embedded in the PX file, in any way,
+> shape or form. There is no way to represent user input quote characters
+> in the standard.
+
 You can break an individual quoted string list member into multiple rows,
 and this means semantically that you concatenate all quoted string list
 item parts which are separated by a newline.
@@ -118,12 +123,27 @@ In the example QSL2, the final string list will parse into ["aaaAAA", "B", "CCC2
 
 4\. `TIMEVAL` variant of the quoted string list.
 
-To be written.
+Unfortunately the PX standard has kind of just evolved over the years,
+and as such, has accumulated features which require special parsing.
+
+The header value for the `TIMEVAL` keyword begins with the string `TLIST(`,
+then one of the following unquoted values: `A1`, `H1`, `Q1`, `M1`, `W1`.
+Then either a `)` (close parenthesis) character, or a `,` (comma) followed
+with a quoted range split with a `-` (minus) character, such as `"1994"-"1996"`.
+
+If the initial `TLIST` expression didn't contain the quoted range, the
+value continues with a `,` (comma) character, and a standard quoted string list.
+
+```text
+TIMEVAL("t1")=TLIST(A1,"1994"-"1996");
+TIMEVAL("t2")=TLIST(A1),"2011","2012","2013","2014","2015";
+```
 
 5\. `HIERARCHY` variant of the quoted string list.
 
-To be written.
-
+```text
+HIERARCHY="a","a":"b","b":"c","c":"d","b":"e","b":"f";
+```
 
 ### 2. Parse the Data
 
