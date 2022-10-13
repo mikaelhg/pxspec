@@ -48,13 +48,15 @@ producers do follow the suggestion.
 
 You can't have newlines, either `\n`, `\r` or `\r\n`, inside quoted header strings.
 
-Whitespace here means the characters ` ` (space), `\n` (newline), `\r`
+Whitespace here means the characters `' '` (space), `'\n'` (newline), `'\r'`
 
 In the headers, whitespace outside quoted strings is not meaningful,
-and can be ignored and those characters dropped.
+and can be ignored and those characters dropped. The standard does not
+discuss whitespace inside non-quoted strings, so I'm assuming that this
+has to be preserved.
 
 In the dense data section, whitespace outside quoted strings is meaningful,
-and denotes the end of a data item, practically either a number or a
+and denotes the end of a data item, which would mean either a number, or a
 `DATASYMBOL{1-6,NIL}` marking. While it might appear that the PX producer
 implementations use `\n` to mark the end of a data row, that's just an
 implementation detail which you cannot rely on. You have to count items.
@@ -69,7 +71,7 @@ dense data rules.
 1\. Plain number.
 
 If the header value consists solely of `[0-9]` and `[\.]` (decimal, dot)
-characters until the end-of-row `;`, it's a valid plain number.
+and `[-]` (minus) characters until the end-of-row `;`, it's a valid plain number.
 
 2\. Non-quoted string.
 
@@ -80,8 +82,7 @@ the end-of-row `;`, it's a valid non-quoted string.
 3\. Quoted string list.
 
 If the header value begins with the `"` (quote) character, and the
-keyword was not `HIERARCHY`, it must parse into a valid quoted 
-string list.
+keyword was not `HIERARCHY`, it must parse into a valid quoted string list.
 
 A quoted string list consists of one or more quoted strings separated
 by the `,` (comma) character.
