@@ -97,9 +97,11 @@ followed by zero or more characters which do not include the
 or the newline characters `\n` or `\r`, and terminated by a `"` quote
 character.
 
-> Let me repeat this for absolute clarity: You cannot include the quote
-> character in any user input strings embedded in the PX file, in any way,
-> shape or form. There is no way to represent user input quote characters
+> Let me repeat this for absolute clarity: You cannot include the same quote
+> character `["]` used to denote the beginning of a quoted string, in any user
+> input strings embedded in the PX file, in any way, shape or form. There is
+> no way to represent user input `["]` (quote) characters in the standard.
+> Single quotes `[']` are allowed, as they do not have any special significance
 > in the standard.
 
 You can break an individual quoted string list member into multiple rows,
