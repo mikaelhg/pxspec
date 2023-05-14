@@ -5,6 +5,11 @@ the [specs](https://www.scb.se/globalassets/vara-tjanster/px-programmen/px-file_
 a bunch of [PX data files](https://github.com/search?q=AXIS-VERSION+KEYS+extension%3Apx&type=Code),
 and [PXWeb code](https://github.com/statisticssweden/PCAxis.Core/blob/master/PCAxis.Core/Parsers/PXFileParser.vb).
 
+Please also see my sister projects [px2csv-go](https://github.com/mikaelhg/px2csv-go) 
+and [px2csv-java](https://github.com/mikaelhg/px2csv-java) for parsers which can convert
+a PX file of hundreds of megabytes into a CSV file in just one second, and using a fixed
+amount of memory, a few megabytes.
+
 ## PX file parse process
 
 Our objective is to be able to open, parse, and process a PX file of multiple 
